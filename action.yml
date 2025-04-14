@@ -30,6 +30,7 @@ runs:
   using: "composite"
   steps:
     - name: 'Disable StatusCake monitoring (if applicable)'
+      shell: bash
       run: |
         if [ -n "${{ inputs.api_key_statuscake }}" ] && [ -n "${{ inputs.test_id_statuscake }}" ]; then
           echo "Disabling StatusCake monitoring..."
