@@ -19,10 +19,27 @@ inputs:
     description: 'Toggles maintenance mode during the deployment. Default value "true" enables the maintenance mode.'
     required: false
     default: 'true'
+  api_key_statuscake:
+    description: 'API key for StatusCake'
+    required: false
+  test_id_statuscake:
+    description: 'Test ID in StatusCake'
+    required: false
 
 runs:
   using: "composite"
   steps:
+    - name: 'Disable StatusCake monitoring (if applicable)'
+      run: |
+        if [ -n "${{ inputs.api_key_statuscake }}" ] && [ -n "${{ inputs.test_id_statuscake }}" ]; then
+          echo "Disabling StatusCake monitoring..."
+          curl -X PUT "https://api.statuscake.com/v1/uptime/${{ inputs.test_id_statuscake }}" \
+            -H "Authorization: Bearer ${{ inputs.api_key_statuscake }}" \
+            -d 'paused=true'
+        else
+          echo "StatusCake credentials not provided. Skipping monitor disable."
+        fi
+
     - name: "Update Drupal instance"
       shell: bash
       run: |
@@ -36,3 +53,16 @@ runs:
         ssh ${{ inputs.server_name }} 'if [ "${{ inputs.enable_extra_modules }}" != "" ]; then cd ${{ inputs.path }} && ${{ inputs.drush }} pm:enable ${{ inputs.enable_extra_modules }}; fi'
         ssh ${{ inputs.server_name }} 'cd ${{ inputs.path }} && ${{ inputs.drush }} cache:rebuild'
         ssh ${{ inputs.server_name }} 'if [ "${{ inputs.enable_maintenance_mode }}" == "true" ]; then cd ${{ inputs.path }} && ${{ inputs.drush }} state-set system.maintenance_mode FALSE; fi'
+
+    - name: 'Enable StatusCake monitoring (if applicable)'
+      if: always()
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.api_key_statuscake }}" ] && [ -n "${{ inputs.test_id_statuscake }}" ]; then
+          echo "Enabling StatusCake monitoring..."
+          curl -X PUT "https://api.statuscake.com/v1/uptime/${{ inputs.test_id_statuscake }}" \
+            -H "Authorization: Bearer ${{ inputs.api_key_statuscake }}" \
+            -d 'paused=false'
+        else
+          echo "StatusCake credentials not provided. Skipping monitor re-enable."
+        fi
