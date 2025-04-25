@@ -19,10 +19,25 @@ inputs:
     description: 'Toggles maintenance mode during the deployment. Default value "true" enables the maintenance mode.'
     required: false
     default: 'true'
+  statuscake_api_key:
+    description: 'API key for StatusCake'
+    required: false
+  statuscake_test_id:
+    description: 'Test ID in StatusCake'
+    required: false
 
 runs:
   using: "composite"
   steps:
+    - name: 'Disable StatusCake monitoring'
+      if: ${{ inputs.statuscake_api_key != '' && inputs.statuscake_test_id != '' }}
+      shell: bash
+      run: |
+        echo "Disabling StatusCake monitoring..."
+        curl -X PUT "https://api.statuscake.com/v1/uptime/${{ inputs.statuscake_test_id }}" \
+          -H "Authorization: Bearer ${{ inputs.statuscake_api_key }}" \
+          -d 'paused=true'
+
     - name: "Update Drupal instance"
       shell: bash
       run: |
@@ -36,3 +51,12 @@ runs:
         ssh ${{ inputs.server_name }} 'if [ "${{ inputs.enable_extra_modules }}" != "" ]; then cd ${{ inputs.path }} && ${{ inputs.drush }} pm:enable ${{ inputs.enable_extra_modules }}; fi'
         ssh ${{ inputs.server_name }} 'cd ${{ inputs.path }} && ${{ inputs.drush }} cache:rebuild'
         ssh ${{ inputs.server_name }} 'if [ "${{ inputs.enable_maintenance_mode }}" == "true" ]; then cd ${{ inputs.path }} && ${{ inputs.drush }} state-set system.maintenance_mode FALSE; fi'
+
+    - name: 'Enable StatusCake monitoring'
+      if: ${{ always() && inputs.statuscake_api_key != '' && inputs.statuscake_test_id != '' }}
+      shell: bash
+      run: |
+        echo "Enabling StatusCake monitoring..."
+        curl -X PUT "https://api.statuscake.com/v1/uptime/${{ inputs.statuscake_test_id }}" \
+          -H "Authorization: Bearer ${{ inputs.statuscake_api_key }}" \
+          -d 'paused=false'
