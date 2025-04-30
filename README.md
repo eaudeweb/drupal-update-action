@@ -15,6 +15,8 @@ This GitHub action runs remote commands over SSH to update a Drupal 8+ instance.
 - `drush` - (Default: `./vendor/bin/drush`) - Name of Drush executable to use for deployments instead of default one from vendor
 - `enable_extra_modules` - (Default: empty) - After the deployment is done, some extra modules can be enabled (i.e. `field_ui views_ui devel devel_generate` etc.)
 - `enable_maintenance_mode` - (Default: "true") - Enables the maintenance mode.
+- `statuscake_api_key` - (Default: empty) – API key used to authenticate with the StatusCake API
+- `statuscake_test_id` -  (Default: empty) – Comma-separated list of StatusCake test IDs to disable/enable monitoring
 
 Here's an example how to configure a remote SSH server `myserver` given in the example below:
 
@@ -53,4 +55,6 @@ jobs:
           server_name: myserver
           enable_extra_modules: field_ui views_ui devel devel_generate views_ui webform_ui purge_ui config
           enable_maintenance_mode: ${{ inputs.enable_maintenance_mode }}
+          statuscake_api_key: ${{ secrets.STATUSCAKE_API_KEY }}
+          statuscake_test_id: ${{ secrets.PROD_STATUSCAKE_ID }}
 ```
